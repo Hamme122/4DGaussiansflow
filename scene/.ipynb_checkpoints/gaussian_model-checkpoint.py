@@ -11,7 +11,7 @@
 
 import torch
 import numpy as np
-from utils.general_utils import inverse_sigmoid, get_expon_lr_func, build_rotation, get_exp_decay_lr_func
+from utils.general_utils import inverse_sigmoid, get_expon_lr_func, build_rotation
 from torch import nn
 import os
 import open3d as o3d
@@ -178,15 +178,23 @@ class GaussianModel:
             {'params': [self._features_rest], 'lr': training_args.feature_lr / 20.0, "name": "f_rest"},
             {'params': [self._opacity], 'lr': training_args.opacity_lr, "name": "opacity"},
             {'params': [self._scaling], 'lr': training_args.scaling_lr, "name": "scaling"},
-            {'params': [self._rotation], 'lr': training_args.rotation_lr_init * self.spatial_lr_scale, "name": "rotation"},
-            {'params': [self._dddm], 'lr': training_args.rotation_lr_init * self.spatial_lr_scale, "name": "dddm"}
+            {'params': [self._rotation], 'lr': training_args.rotation_lr, "name": "rotation"}
             
         ]
 
-
         self.optimizer = torch.optim.Adam(l, lr=0.0, eps=1e-15)
-        self.xyz_scheduler_args = get_exp_decay_lr_func(lr_init=training_args.position_lr_init, decay_rate = training_args.position_lr_decay)
-        self.rotation_scheduler_args = get_exp_decay_lr_func(lr_init=training_args.rotation_lr_init, decay_rate = training_args.rotation_lr_decay)
+        self.xyz_scheduler_args = get_expon_lr_func(lr_init=training_args.position_lr_init*self.spatial_lr_scale,
+                                                    lr_final=training_args.position_lr_final*self.spatial_lr_scale,
+                                                    lr_delay_mult=training_args.position_lr_delay_mult,
+                                                    max_steps=training_args.position_lr_max_steps)
+        self.deformation_scheduler_args = get_expon_lr_func(lr_init=training_args.deformation_lr_init*self.spatial_lr_scale,
+                                                    lr_final=training_args.deformation_lr_final*self.spatial_lr_scale,
+                                                    lr_delay_mult=training_args.deformation_lr_delay_mult,
+                                                    max_steps=training_args.position_lr_max_steps)    
+        self.grid_scheduler_args = get_expon_lr_func(lr_init=training_args.grid_lr_init*self.spatial_lr_scale,
+                                                    lr_final=training_args.grid_lr_final*self.spatial_lr_scale,
+                                                    lr_delay_mult=training_args.deformation_lr_delay_mult,
+                                                    max_steps=training_args.position_lr_max_steps)    
 
     def update_learning_rate(self, iteration):
         ''' Learning rate scheduling per step '''
@@ -194,12 +202,15 @@ class GaussianModel:
             if param_group["name"] == "xyz":
                 lr = self.xyz_scheduler_args(iteration)
                 param_group['lr'] = lr
-            if "rotation" in param_group["name"]:
-                lr = self.rotation_scheduler_args(iteration)
+                # return lr
+            if  "grid" in param_group["name"]:
+                lr = self.grid_scheduler_args(iteration)
                 param_group['lr'] = lr
-            elif param_group["name"] == "dddm":
-                lr = self.rotation_scheduler_args(iteration)
+                # return lr
+            elif param_group["name"] == "deformation":
+                lr = self.deformation_scheduler_args(iteration)
                 param_group['lr'] = lr
+                # return lr
 
     def construct_list_of_attributes(self):
         l = ['x', 'y', 'z', 'nx', 'ny', 'nz']

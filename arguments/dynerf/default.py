@@ -1,3 +1,4 @@
+
 ModelHiddenParams = dict(
     kplanes_config = {
      'grid_dimensions': 2,
@@ -19,6 +20,7 @@ ModelHiddenParams = dict(
     static_mlp=False
 
 )
+
 OptimizationParams = dict(
     dataloader=True,
     iterations = 14000,

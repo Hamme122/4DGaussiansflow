@@ -80,24 +80,18 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     if "coarse" in stage:
         means3D_final, scales_final, rotations_final, opacity_final, shs_final = means3D, scales, rotations, opacity, shs
     elif "fine" in stage:
-        # time0 = get_time()
-        # means3D_deform, scales_deform, rotations_deform, opacity_deform = pc._deformation(means3D[deformation_point], scales[deformation_point], 
-        #                                                                  rotations[deformation_point], opacity[deformation_point],
-        #                                                                  time[deformation_point])
-        means3D_final, scales_final, rotations_final, opacity_final, shs_final = pc._deformation(means3D, scales, 
-                                                                 rotations, opacity, shs,
-                                                                 time)
+        # means3D_final, scales_final, rotations_final, opacity_final, shs_final = pc._deformation(means3D, scales, 
+        #                                                          rotations, opacity, shs,
+        #                                                          time)
+        means3D_final, scales_final, rotations_final, opacity_final, shs_final = means3D, scales, rotations, opacity, shs
+        
     else:
         raise NotImplementedError
 
-
-
-    # time2 = get_time()
-    # print("asset value:",time2-time1)
     scales_final = pc.scaling_activation(scales_final)
     rotations_final = pc.rotation_activation(rotations_final)
     opacity = pc.opacity_activation(opacity_final)
-    # print(opacity.max())
+
     # If precomputed colors are provided, use them. Otherwise, if it is desired to precompute colors
     # from SHs in Python, do it. If not, then SH -> RGB conversion will be done by rasterizer.
     # shs = None
@@ -111,12 +105,10 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             colors_precomp = torch.clamp_min(sh2rgb + 0.5, 0.0)
         else:
             pass
-            # shs = 
     else:
         colors_precomp = override_color
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
-    # time3 = get_time()
     rendered_image, radii, depth = rasterizer(
         means3D = means3D_final,
         means2D = means2D,
@@ -126,9 +118,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         scales = scales_final,
         rotations = rotations_final,
         cov3D_precomp = cov3D_precomp)
-    # time4 = get_time()
-    # print("rasterization:",time4-time3)
-    # breakpoint()
+
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
     return {"render": rendered_image,
