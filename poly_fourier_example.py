@@ -14,7 +14,7 @@ params = torch.nn.Parameter(torch.randn(init_shape, device='cuda'))
 t_array = torch.linspace(0, 1, num_points).reshape(-1, 1).cuda()
 
 # type_name should be 'poly', 'fourier' and 'poly_fourier'
-fit_model = polyfourier.get_fit_model(type_name='poly')
+fit_model = polyfourier.DDDMModel(type_name="poly", feat_dim=3)
 
 
 loss_fn = torch.nn.MSELoss()
