@@ -1,43 +1,40 @@
 import torch
 import polyfourier
 import taichi as ti
+
+# Initialize Taichi with CUDA
 ti.init(arch=ti.cuda)
 
+# Set up parameters
 num_points = 100
-feature_dim = 3
-output_dim = 2
+feature_dim = 5
+output_dim = 10
 
-# The parameters should be organized as a tensor of 
-# shape (num_points, feature_dim, output_dim)
-init_shape = (num_points, feature_dim, output_dim)
-params = torch.nn.Parameter(torch.randn(init_shape, device='cuda'))
-t_array = torch.linspace(0, 1, num_points).reshape(-1, 1).cuda()
+# Initialize the DDDMModel with the type_name as 'poly'
+fit_model = polyfourier.DDDMModel(type_name="poly", feat_dim=feature_dim,num_points= num_points, output_dim= output_dim)
 
-# type_name should be 'poly', 'fourier' and 'poly_fourier'
-fit_model = polyfourier.DDDMModel(type_name="poly", feat_dim=3)
-
+fit_model.cuda()
 
 loss_fn = torch.nn.MSELoss()
-optimizer = torch.optim.SGD([params], lr=0.01)
+optimizer = torch.optim.Adam(fit_model.get_dddm_parameters(), lr=0.001)
 
-# Training loop for 10- iterations
 for epoch in range(1000):
     # Forward pass
-    output = fit_model(params, t_array, feature_dim)
-
+    output = fit_model()
+    
     # Initialize target as ones
-    target = torch.ones(output.shape).cuda()
+    target = torch.zeros(output.shape).cuda()
+    
+    # Compute the loss
     loss = loss_fn(output, target)
     
     # Backward pass
-    optimizer.zero_grad()
-    loss.backward()
-
-    optimizer.step()
+    optimizer.zero_grad()  # Clear the gradients
+    loss.backward()        # Backpropagate the loss
+    optimizer.step()       # Update the model parameters
     
+    # Print the loss for each epoch
     print(f"Epoch {epoch+1}, Loss: {loss.item()}")
-    # print("Gradient of params:", params.grad)
 
-# Verify final gradients
-# print("Final gradient of params:", params.grad)
+# Print the final output
 print(output)
