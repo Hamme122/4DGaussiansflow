@@ -4,6 +4,7 @@ This is `Gaussian-Flow: 4D Reconstruction with Dynamic 3D Gaussian Particle` uno
 
 ## ToDo list
 
+In the rough
 ## Environmental Setups
 
 Please follow the [3D-GS](https://github.com/graphdeco-inria/gaussian-splatting) to install the relative packages.
